@@ -1,7 +1,7 @@
 # ChatAppFaceID
 Copyright (c) 2019 psu-oss-group
 
-A ChatApp...  &emsp;&emsp;//TODO
+A web-based facial recognition bulletin board.
 <!--project description-->
 
 ## Project Participants
@@ -15,7 +15,6 @@ A ChatApp...  &emsp;&emsp;//TODO
 
 ## Tech stack, Pre-reqs and setup
 Nodejs, express, Socket.io, OpenCV
-//TODO
 
 ## getting started
 ```shell
