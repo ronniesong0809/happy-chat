@@ -73,7 +73,10 @@
 
     <script>
         $(function () {
-            var socket = io.connect();
+            // connect socket
+            var socket = io();
+
+            // Jquery variable 
             var $messageForm = $('#messageForm');
             var $message = $('#message');
             var $textbox = $('#messageBox');
@@ -82,17 +85,20 @@
             var $userForm = $('#userForm');
             var $username = $('#username');
 
-
+            // when the user enter the new message, submit to the socket client to socket server 
             $messageForm.submit(function (e) {
                 e.preventDefault();
                 socket.emit('send message', $message.val());
                 $message.val(''); // clear the text box after sent 
             });
+
+            // receive the message back from the socket server
             socket.on('new message', function (data) {
                 console.log('data name' + data.name);
                 $textbox.append($chat.append('<div class="well"><strong>'+ data.name + '</strong>' + ': ' + data.msg + '</div>'));
 
             });
+            // user log in by their usename 
             $userForm.submit(function (e) {
                 e.preventDefault();
                 socket.emit('new user', $username.val(), function(data){
@@ -105,6 +111,7 @@
                 $username.val(''); // clear the text box after sent 
             });
 
+            // get the users who are online
             socket.on('get users',function(data){
                console.log('online users'+ data);
                 var html = '';
