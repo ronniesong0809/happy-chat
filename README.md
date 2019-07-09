@@ -18,9 +18,12 @@ Nodejs, express, Socket.io, OpenCV
 
 ## getting started
 ```shell
+$ git clone https://github.com/psu-oss-group/ChatAppFaceID.git
+$ cd ChatAppFaceID
+$ npm install
 $ node server.js
 ```
-//TODO
+Go to: [localhost:3000/](http://localhost:3000/)
 
 ## References
 //TODO
@@ -28,5 +31,5 @@ $ node server.js
 ## License
 
 This program is licensed under the "MIT License".  Please
-see the file `LICENSE` in the source distribution of this
+see the file [`LICENSE`](https://github.com/psu-oss-group/ChatAppFaceID/blob/master/LICENSE) in the source distribution of this
 software for license terms.
