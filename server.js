@@ -1,37 +1,41 @@
-var authConfig = require('./config/auth')
-var express = require('express')
-var passport = require('passport')
-var bodyParser = require('body-parser')
-var GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
+var authConfig = require("./config/auth");
+var express = require("express");
+var passport = require("passport");
+var bodyParser = require("body-parser");
+var GoogleStrategy = require("passport-google-oauth").OAuth2Strategy;
 var app = express();
 var server = require("http").createServer(app);
 var io = require("socket.io").listen(server);
 var faceapi = require("face-api.js");
-var cv = require('opencv4nodejs');
-var rectColor = [0, 255, 0];
-var rectThickness = 2;
- 
+var cv = require("opencv4nodejs");
+var cam = require("node-webcam");
+var fs = require("fs");
+var path = require("path");
+var canvas = require("canvas");
+const { Canvas, Image, ImageData } = canvas;
 
-app.set('view engine', 'hbs');
-app.use(bodyParser.json())
-app.use(bodyParser.urlencoded({extended: true}))
+app.set("view engine", "hbs");
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 // var logger = require('morgan');
 // var cookieParser = require('cookie-parser');
-var session = require('express-session');
-var port = process.env.PORT || 3000
+var session = require("express-session");
+var port = process.env.PORT || 3000;
 
 connections = [];
 users = [];
-temp_user = "anonymous"
+temp_user = "anonymous";
 
 // app.use(logger('dev'));
 // app.use(cookieParser());
-app.use(session({
-  secret: 'keyboard cat',
-  resave: false,
-  saveUninitialized: false
-}));
+app.use(
+  session({
+    secret: "keyboard cat",
+    resave: false,
+    saveUninitialized: false
+  })
+);
 
 app.use(passport.initialize());
 app.use(passport.session());
@@ -45,141 +49,168 @@ passport.deserializeUser(function(obj, done) {
   done(null, obj);
 });
 
-passport.use(new GoogleStrategy(
-  authConfig.google,
-  function(accessToken, refreshToken, profile, done) {
+passport.use(
+  new GoogleStrategy(authConfig.google, function(
+    accessToken,
+    refreshToken,
+    profile,
+    done
+  ) {
     return done(null, profile);
-  }
-));
+  })
+);
 
-app.get('/', function(req, res) {
-  res.render('index', {
+app.get("/", function(req, res) {
+  res.render("index", {
     user: req.user
   });
 });
 
-app.get('/login', function(req, res) {
-  res.render('login', {
+app.get("/login", function(req, res) {
+  res.render("login", {
     user: req.user
   });
 });
 
-app.get('/auth/google',
-  passport.authenticate('google', {
-    scope: ['openid', 'email', 'profile']
-}));
+app.get(
+  "/auth/google",
+  passport.authenticate("google", {
+    scope: ["openid", "email", "profile"]
+  })
+);
 
-app.get('/auth/google/callback',
-  passport.authenticate('google', {
-    failureRedirect: '/login'
+app.get(
+  "/auth/google/callback",
+  passport.authenticate("google", {
+    failureRedirect: "/login"
   }),
   function(req, res) {
-    res.redirect('/account');
-  });
+    res.redirect("/account");
+  }
+);
 
-app.get('/account', ensureAuthenticated, function(req, res) {
-  res.render('account', {
+app.get("/account", ensureAuthenticated, function(req, res) {
+  res.render("account", {
     user: req.user
   });
 });
 
-app.get('/logout', function(req, res) {
+app.get("/logout", function(req, res) {
   req.logout();
-  res.redirect('/');
+  res.redirect("/");
 });
 
-app.get('/faceID', function(req, res) {
-  res.render("faceLogin");
+app.get("/faceID", function(req, res) {
+  cam.capture("test_pic1", {}, function(err, data) {
+    if (err) throw err;
+    console.log(data);
 
-  const webcam = new cv.VideoCapture(0);
+    const mat = new cv.imread("test_pic1.jpg");
+    const gray = mat.bgrToGray();
 
-  webcam.set(cv.CAP_PROP_FRAME_HEIGHT,300);
-  webcam.set(cv.CAP_PROP_FRAME_WIDTH,300);
- 
-  setInterval(() => {
-    const photo = webcam.read(); // return Mat
-      const image = cv.imencode('.jpg',photo).toString('base64');
-      io.emit('image',image);
-      
-  },100)
-})
-    
+    var result = detect_smile(gray, mat);
 
-    
-  
-  
-  //const classifier = new cv.CascadeClassifier(cv.HAAR_FRONTALFACE_ALT2);
-  
- // faces = classifier.detectMultiScale()
-// by nesting callbacks
-//cv.imreadAsync('./people.jpg', (err, img) => {
- // if (err) { return console.error(err); }
-  //const grayImg = img.bgrToGray();
- //faces = classifier.detectMultiScale(grayImg).objects;
+    if (result == 0) {
+      res.render("faceLogin");
+      console.log("No smilling face detected ");
+      cv.imwrite("result_NOSMILE.jpg", mat);
+      io.on("connection", function(socket) {
+        fs.readFile("result_NOSMILE.jpg", function(err, buff) {
+          socket.emit(
+            "image",
+            "data:image/jpg;base64," + buff.toString("base64")
+          );
+        });
+      });
+    } else {
+      //const outBase64 = cv.imencode(".jpg", result).toString("base64");
+      cv.imwrite("result_SMILE.jpg", result);
+      res.render("chatroom");
+    }
 
-  // for (face in faces) {
-  //   console.log(face.objects);
-  //   cv.drawDetection(img, [face.x, face.y], [face.width, face.height], rectColor, rectThickness);
-    
-  // }
-  //cv.imshow('i mg',img);
- // cv.imwrite("check.jpg",img.getRegion(faces[0]))
-//  return grayImg.getRegion(faces[0]);
-//const outBase64 =  cv.imencode('.jpg', img.getRegion(faces[0])).toString('base64'); // Perform base64 encoding
-//const htmlImg='<img src=data:image/jpeg;base64,'+outBase64 + '>';
-//io.emit('image',outBase64);
-//})
-   
+    //FUNCTION to detect smile
+    function detect_smile(grayImg, mat) {
+      const blue = new cv.Vec(255, 0, 0);
+      // detect smile
+      const smile = new cv.CascadeClassifier(cv.HAAR_SMILE);
+      smiles_Rects = smile.detectMultiScale(grayImg, 1.8, 20).objects; //return the array of smiling object with the rectangular size
+      // console.log("SMILE" + smiles_Rects);
+
+      if (smiles_Rects.length <= 0) {
+        console.log("LENGTH" + smiles_Rects.length);
+        return 0;
+      } else {
+        mat.drawRectangle(
+          new cv.Point(smiles_Rects[0].x, smiles_Rects[0].y),
+          new cv.Point(
+            smiles_Rects[0].x + smiles_Rects[0].width,
+            smiles_Rects[0].y + smiles_Rects[0].height
+          ),
+          blue,
+          cv.LINE_4 // thichkness
+        );
+        return mat;
+      }
+    }
+  });
+});
+
 server.listen(port, function() {
-  console.log('Listening on http://localhost:'+`${port}`)
+  console.log("Listening on http://localhost:" + `${port}`);
 });
-
 
 // Simple route middleware to ensure user is authenticated.
 function ensureAuthenticated(req, res, next) {
-  if (req.isAuthenticated()){
-    console.log("Welcome "+ req.user.displayName)
-    console.log(req.user.emails[0].value)
-    temp_user = req.user.displayName
+  if (req.isAuthenticated()) {
+    console.log("Welcome " + req.user.displayName);
+    console.log(req.user.emails[0].value);
+    temp_user = req.user.displayName;
     return next();
-  }else{
-    console.log("Please login with valid user")
+  } else {
+    console.log("Please login with valid user");
     req.logout();
-    res.redirect('/login');
+    res.redirect("/login");
   }
 }
 
- //listen on the connection event
-io.on('connection', function(socket){
-    connections.push(socket);
-    socket.username = temp_user
-    users.push(socket.username)
-    updateUsers();
-    console.log('[' + socket.username + '] is connected, the connection.length: ' + connections.length);
+//listen on the connection event
+io.on("connection", function(socket) {
+  connections.push(socket);
+  socket.username = temp_user;
+  users.push(socket.username);
+  updateUsers();
+  console.log(
+    "[" +
+      socket.username +
+      "] is connected, the connection.length: " +
+      connections.length
+  );
 
-    socket.on('disconnect', function(data){
-        users.splice(users.indexOf(socket.username),1);
+  socket.on("disconnect", function(data) {
+    users.splice(users.indexOf(socket.username), 1);
 
-        connections.splice(connections.indexOf(socket),1);
-        console.log('[' + socket.username + '} is disconnected, the connection.length: ',connections.length)
-    });
+    connections.splice(connections.indexOf(socket), 1);
+    console.log(
+      "[" + socket.username + "} is disconnected, the connection.length: ",
+      connections.length
+    );
+  });
 
-    // new user
-    //  socket.on('new user', function(data, callback) {
-    //     callback(true);
-    //     socket.username = data;
-    //     console.log('data username' + socket.username);
-    //     users.push(socket.username);
-    //     updateUsers();
-    // });
+  // new user
+  //  socket.on('new user', function(data, callback) {
+  //     callback(true);
+  //     socket.username = data;
+  //     console.log('data username' + socket.username);
+  //     users.push(socket.username);
+  //     updateUsers();
+  // });
 
-    socket.on('send message', function(data){
-        console.log('server.message: ' + data);
-        io.sockets.emit('new message', {msg:data, name:socket.username, color: "blue" });
-    });
+  socket.on("send message", function(data) {
+    console.log("server.message: " + data);
+    io.sockets.emit("new message", { msg: data, name: socket.username });
+  });
 
-    function updateUsers() {
-        io.sockets.emit('get users', users);
-    }
-
+  function updateUsers() {
+    io.sockets.emit("get users", users);
+  }
 });
