@@ -6,13 +6,9 @@ var GoogleStrategy = require("passport-google-oauth").OAuth2Strategy;
 var app = express();
 var server = require("http").createServer(app);
 var io = require("socket.io").listen(server);
-var faceapi = require("face-api.js");
 var cv = require("opencv4nodejs");
 var cam = require("node-webcam");
 var fs = require("fs");
-var path = require("path");
-var canvas = require("canvas");
-const { Canvas, Image, ImageData } = canvas;
 
 app.set("view engine", "hbs");
 app.use(bodyParser.json());
@@ -93,6 +89,7 @@ app.get("/account", ensureAuthenticated, function(req, res) {
   res.render("account", {
     user: req.user
   });
+  console.log(req.user)
 });
 
 app.get("/logout", function(req, res) {
