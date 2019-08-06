@@ -18,6 +18,8 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // var cookieParser = require('cookie-parser');
 var session = require("express-session");
 var port = process.env.PORT || 3000;
+var isFace = false;
+var init;
 
 connections = [];
 users = [];
@@ -57,9 +59,7 @@ passport.use(
 );
 
 app.get("/", function(req, res) {
-  res.render("index", {
-    user: req.user
-  });
+  res.render("index", { user: req.user, face: isFace });
 });
 
 app.get("/login", function(req, res) {
@@ -97,59 +97,73 @@ app.get("/logout", function(req, res) {
   res.redirect("/");
 });
 
+app.get("/countTime", function(req, res) {
+  res.render("countTime");
+});
+
 app.get("/faceID", function(req, res) {
-  cam.capture("test_pic1", {}, function(err, data) {
-    if (err) throw err;
-    console.log(data);
+  //var timer = setTimeout(function() {
+  capture();
+  //}, 2000);
+  // capture the smiling ID
+  function capture() {
+    cam.capture("test_pic1", {}, function(err, data) {
+      if (err) throw err;
+      console.log(data);
 
-    const mat = new cv.imread("test_pic1.jpg");
-    const gray = mat.bgrToGray();
+      const mat = new cv.imread("test_pic1.jpg");
+      const gray = mat.bgrToGray();
 
-    var result = detect_smile(gray, mat);
+      var result = detect_smile(gray, mat);
 
-    if (result == 0) {
-      res.render("faceLogin");
-      console.log("No smilling face detected ");
-      cv.imwrite("result_NOSMILE.jpg", mat);
-      io.on("connection", function(socket) {
-        fs.readFile("result_NOSMILE.jpg", function(err, buff) {
-          socket.emit(
-            "image",
-            "data:image/jpg;base64," + buff.toString("base64")
-          );
+      if (result == 0) {
+        res.render("faceLogin");
+        console.log("No smilling face detected ");
+        cv.imwrite("result_NOSMILE.jpg", mat);
+        io.on("connection", function(socket) {
+          fs.readFile("result_NOSMILE.jpg", function(err, buff) {
+            socket.emit(
+              "imageNotSmile",
+              "data:image/jpg;base64," + buff.toString("base64"),
+              function(data) {
+                console.log(data);
+              }
+            );
+          });
         });
-      });
-    } else {
-      //const outBase64 = cv.imencode(".jpg", result).toString("base64");
-      cv.imwrite("result_SMILE.jpg", result);
-      res.render("chatroom");
-    }
-
-    //FUNCTION to detect smile
-    function detect_smile(grayImg, mat) {
-      const blue = new cv.Vec(255, 0, 0);
-      // detect smile
-      const smile = new cv.CascadeClassifier(cv.HAAR_SMILE);
-      smiles_Rects = smile.detectMultiScale(grayImg, 1.8, 20).objects; //return the array of smiling object with the rectangular size
-      // console.log("SMILE" + smiles_Rects);
-
-      if (smiles_Rects.length <= 0) {
-        console.log("LENGTH" + smiles_Rects.length);
-        return 0;
       } else {
-        mat.drawRectangle(
-          new cv.Point(smiles_Rects[0].x, smiles_Rects[0].y),
-          new cv.Point(
-            smiles_Rects[0].x + smiles_Rects[0].width,
-            smiles_Rects[0].y + smiles_Rects[0].height
-          ),
-          blue,
-          cv.LINE_4 // thichkness
-        );
-        return mat;
+        //const outBase64 = cv.imencode(".jpg", result).toString("base64");
+        isFace = true;
+        cv.imwrite("result_SMILE.jpg", result);
+        res.redirect("/");
       }
-    }
-  });
+
+      //FUNCTION to detect smile
+      function detect_smile(grayImg, mat) {
+        const blue = new cv.Vec(255, 0, 0);
+        // detect smile
+        const smile = new cv.CascadeClassifier(cv.HAAR_SMILE);
+        smiles_Rects = smile.detectMultiScale(grayImg, 1.8, 20).objects; //return the array of smiling object with the rectangular size
+        // console.log("SMILE" + smiles_Rects);
+
+        if (smiles_Rects.length <= 0) {
+          console.log("LENGTH" + smiles_Rects.length);
+          return 0;
+        } else {
+          mat.drawRectangle(
+            new cv.Point(smiles_Rects[0].x, smiles_Rects[0].y),
+            new cv.Point(
+              smiles_Rects[0].x + smiles_Rects[0].width,
+              smiles_Rects[0].y + smiles_Rects[0].height
+            ),
+            blue,
+            cv.LINE_4 // thichkness
+          );
+          return mat;
+        }
+      }
+    });
+  }
 });
 
 server.listen(port, function() {
@@ -193,14 +207,14 @@ io.on("connection", function(socket) {
     );
   });
 
-  // new user
-  //  socket.on('new user', function(data, callback) {
-  //     callback(true);
-  //     socket.username = data;
-  //     console.log('data username' + socket.username);
-  //     users.push(socket.username);
-  //     updateUsers();
-  // });
+  socket.on("change name", function(data) {
+    console.log("The username is changed to " + data);
+    users.splice(users.indexOf(socket.username), 1);
+    connections.splice(connections.indexOf(socket), 1);
+    socket.username = data;
+    users.push(socket.username);
+    updateUsers();
+  });
 
   socket.on("send message", function(data) {
     console.log("server.message: " + data);
