@@ -88,7 +88,7 @@ app.get("/account", ensureAuthenticated, function(req, res) {
   res.render("account", {
     user: req.user
   });
-  console.log(req.user)
+  console.log(req.user);
 });
 
 app.get("/logout", function(req, res) {
@@ -112,11 +112,15 @@ app.get("/faceID", function(req, res) {
         console.log(error);
         io.on("connection", function(socket) {
           fs.readFile("placeholder.jpg", function(err, buff) {
-            socket.emit("imageNotSmile", "data:image/jpg;base64," + buff.toString("base64"),function(data) {
-              console.log(data);
-            });
-          })
-        })
+            socket.emit(
+              "imageNotSmile",
+              "data:image/jpg;base64," + buff.toString("base64"),
+              function(data) {
+                console.log(data);
+              }
+            );
+          });
+        });
       } else {
         console.log(data);
 
@@ -131,9 +135,13 @@ app.get("/faceID", function(req, res) {
           cv.imwrite("result_NOSMILE.jpg", mat);
           io.on("connection", function(socket) {
             fs.readFile("result_NOSMILE.jpg", function(err, buff) {
-              socket.emit("imageNotSmile", "data:image/jpg;base64," + buff.toString("base64"), function(data) {
-                console.log(data);
-              });
+              socket.emit(
+                "imageNotSmile",
+                "data:image/jpg;base64," + buff.toString("base64"),
+                function(data) {
+                  console.log(data);
+                }
+              );
             });
           });
         } else {
