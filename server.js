@@ -22,7 +22,7 @@ var isFace = false;
 
 connections = [];
 users = [];
-temp_user = "anonymous";
+temp_user = "";
 
 // app.use(logger('dev'));
 // app.use(cookieParser());
@@ -36,7 +36,7 @@ app.use(
 
 app.use(passport.initialize());
 app.use(passport.session());
-// app.use(express.static(__dirname + '/public'));
+app.use(express.static('public'));
 
 passport.serializeUser(function(user, done) {
   done(null, user);
@@ -47,12 +47,7 @@ passport.deserializeUser(function(obj, done) {
 });
 
 passport.use(
-  new GoogleStrategy(authConfig.google, function(
-    accessToken,
-    refreshToken,
-    profile,
-    done
-  ) {
+  new GoogleStrategy(authConfig.google, function(accessToken, refreshToken, profile, done) {
     return done(null, profile);
   })
 );
@@ -67,19 +62,14 @@ app.get("/login", function(req, res) {
   });
 });
 
-app.get(
-  "/auth/google",
-  passport.authenticate("google", {
+app.get("/auth/google", passport.authenticate("google", {
     scope: ["openid", "email", "profile"]
   })
 );
 
-app.get(
-  "/auth/google/callback",
-  passport.authenticate("google", {
+app.get("/auth/google/callback", passport.authenticate("google", {
     failureRedirect: "/login"
-  }),
-  function(req, res) {
+  }),function(req, res) {
     res.redirect("/account");
   }
 );
@@ -88,11 +78,12 @@ app.get("/account", ensureAuthenticated, function(req, res) {
   res.render("account", {
     user: req.user
   });
-  console.log(req.user);
+  // console.log(req.user);
 });
 
 app.get("/logout", function(req, res) {
   req.logout();
+  temp_user = "";
   isFace = false;
   res.redirect("/");
 });
@@ -102,53 +93,59 @@ app.get("/countTime", function(req, res) {
 });
 
 app.get("/faceID", function(req, res) {
-  //var timer = setTimeout(function() {
   capture();
-  //}, 2000);
+  
   // capture the smiling ID
   function capture() {
     cam.capture("public/test_pic", {}, function(err, data) {
       if (err) {
-        res.render("faceLogin");
-        console.log(error);
+        res.render("faceLoginFailed");
+        console.log(err);
+        error = err.stack
         io.on("connection", function(socket) {
           fs.readFile("public/assets/placeholder.jpg", function(err, buff) {
-            socket.emit(
-              "imageNotSmile",
-              "data:image/jpg;base64," + buff.toString("base64"),
-              function(data) {
-                console.log(data);
+            socket.emit("imageNotSmile", {
+                image: "data:image/jpg;base64," + buff.toString("base64"),
+                message: error
               }
             );
           });
         });
       } else {
-        console.log(data);
-
+        // console.log(data);
         const mat = new cv.imread("public/test_pic.jpg");
         const gray = mat.bgrToGray();
-
+        cv.imwrite("public/result_GRAY.jpg", gray);
         var result = detect_smile(gray, mat);
 
         if (result == 0) {
-          res.render("faceLogin");
-          console.log("No smilling face detected ");
+          res.render("faceLoginFailed");
+          // console.log("No smilling face detected");
           cv.imwrite("public/result_NOSMILE.jpg", mat);
           io.on("connection", function(socket) {
             fs.readFile("public/result_NOSMILE.jpg", function(err, buff) {
-              socket.emit(
-                "imageNotSmile",
-                "data:image/jpg;base64," + buff.toString("base64"),
-                function(data) {
-                  console.log(data);
+              socket.emit("imageNotSmile", {
+                  image: "data:image/jpg;base64," + buff.toString("base64"),
+                  message: "Smiles Can Not Be Detected, Let's Try Again!"
                 }
               );
             });
           });
+          // passing without smiling face being detected
+          // isFace = true; 
         } else {
-          //const outBase64 = cv.imencode(".jpg", result).toString("base64");
+          // const outBase64 = cv.imencode(".jpg", result).toString("base64");
           isFace = true;
           cv.imwrite("public/result_SMILE.jpg", result);
+          io.on("connection", function(socket) {
+            fs.readFile("public/result_SMILE.jpg", function(err, buff) {
+              socket.emit("imageSmile", {
+                  image: "data:image/jpg;base64," + buff.toString("base64"),
+                  message: "Smiles Detected"
+                }
+              );
+            });
+          });
           res.redirect("/");
         }
       }
@@ -188,7 +185,7 @@ function detect_smile(grayImg, mat) {
   // console.log("SMILE" + smiles_Rects);
 
   if (smiles_Rects.length <= 0) {
-    console.log("LENGTH" + smiles_Rects.length);
+    console.log("smiles_Rects.length: " + smiles_Rects.length);
     return 0;
   } else {
     for (var i = 0; i < smiles_Rects.length; ++i) {
@@ -208,25 +205,24 @@ function detect_smile(grayImg, mat) {
 
 //listen on the connection event
 io.on("connection", function(socket) {
-  connections.push(socket);
-  socket.username = temp_user;
-  users.push(socket.username);
-  updateUsers();
-  console.log(
-    "[" +
-      socket.username +
-      "] is connected, the connection.length: " +
-      connections.length
-  );
+  if(temp_user != "" || temp_user == null){
+    connections.push(socket);
+    socket.username = temp_user;
+    users.push(socket.username);
+    updateUsers();
+  }
+
+  console.log("[" + socket.username + "] is connected, the connection.length: " + connections.length);
 
   socket.on("disconnect", function(data) {
     users.splice(users.indexOf(socket.username), 1);
-
     connections.splice(connections.indexOf(socket), 1);
-    console.log(
-      "[" + socket.username + "} is disconnected, the connection.length: ",
-      connections.length
-    );
+    console.log("[" + socket.username + "] is disconnected, the connection.length: ", connections.length);
+  });  
+
+  socket.on("send message", function(data) {
+    console.log("server.message: " + data);
+    io.sockets.emit("new message", { msg: data, name: socket.username });
   });
 
   socket.on("change name", function(data) {
@@ -236,11 +232,6 @@ io.on("connection", function(socket) {
     socket.username = data;
     users.push(socket.username);
     updateUsers();
-  });
-
-  socket.on("send message", function(data) {
-    console.log("server.message: " + data);
-    io.sockets.emit("new message", { msg: data, name: socket.username });
   });
 
   function updateUsers() {
