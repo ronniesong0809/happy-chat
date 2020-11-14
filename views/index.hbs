@@ -57,13 +57,12 @@
     </script>
 
 {{else if face}}
-    <button type="button" class="btn btn-secondary m-5" data-toggle="modal" data-target=".picture" style="position: absolute">Check your Smile <i class="far fa-smile-wink"></i></button>
-    <div class="container mt-5">    
+    <div class="container mt-5">
         <div class="row">
-            <div class="col-3">
-                <div class="text-center border">
+            <div class="col-lg-3">
+                <div class="text-center">
                     <h3>Users</h3>
-                    <ul class="list-group scrollable m-2" id='users' style="height: 500px"> </ul>
+                    <ul class="list-group scrollable m-2" id='users'> </ul>
                 </div>
                 
                 <div class="modal fade picture" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
@@ -85,8 +84,8 @@
                 </div>
             </div>
             
-            <div class="col-9">
-                <div class="border">
+            <div class="col-lg-9">
+                <div>
                     <h3 class="text-center">Message</h3>
                     <div class="messageBox scrollable border m-2" id="messageBox"  style="height: 500px">
                         <ul class="h-80" id="chat"></ul>
@@ -94,6 +93,8 @@
                 </div>
             </div>
         </div>
+        
+        <button type="button" class="btn btn-secondary mt-5" data-toggle="modal" data-target=".picture" style="position: absolute">Check your Smile <i class="far fa-smile-wink"></i></button>
 
         <form class="fixed-bottom m-5" id="messageForm">
             <div class="input-group">
