@@ -1,4 +1,3 @@
-var authConfig = require('./config/auth')
 var express = require('express')
 var passport = require('passport')
 var bodyParser = require('body-parser')
@@ -48,7 +47,12 @@ passport.deserializeUser(function (obj, done) {
 })
 
 passport.use(
-  new GoogleStrategy(authConfig.google, function (accessToken, refreshToken, profile, done) {
+  new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: '/auth/google/callback',
+    enableProof: false
+  }, function (accessToken, refreshToken, profile, done) {
     return done(null, profile)
   })
 )

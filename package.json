@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/psu-oss-group/happy-chat#readme",
   "dependencies": {
+    "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "express-session": "^1.16.2",
     "hbs": "^4.0.4",
