@@ -1,4 +1,5 @@
 cv:
+  env_file: .env
   build: .
   restart: always
   volumes:

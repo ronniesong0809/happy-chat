@@ -12,7 +12,7 @@ var path = require('path')
 var serveStatic = require('serve-static')
 
 var session = require('express-session')
-var port = 3000
+var port = process.env.PORT || 3000
 var isFace = false
 var connections = []
 var users = []
@@ -130,9 +130,10 @@ app.get('/testResult', function (req, res) {
 app.post('/api/picture', function (req) {
   var img = req.body.jpg.replace('data:image/jpeg;base64,', '')
   var buff = new Buffer(img, 'base64').toString('binary')
-  fs.writeFile('public/test_pic.jpg', buff, 'binary', function (err) {
+  fs.writeFile(path.join(__dirname, 'public/test_pic.jpg'), buff, 'binary', function (err) {
+    console.log("hey")
     if (err) {
-      console.log(err)
+      console.log("Error: ", err)
     }
   })
 })
@@ -153,16 +154,16 @@ function ensureAuthenticated(req, res, next) {
 
 // Wrapper for smile detection
 function detect_smile_helper(req, res, rder) {
-  const mat = new cv.imread('public/test_pic.jpg')
+  const mat = new cv.imread(path.join(__dirname, 'public/test_pic.jpg'))
   const gray = mat.bgrToGray()
-  cv.imwrite('public/result_GRAY.jpg', gray)
+  cv.imwrite(path.join(__dirname, 'public/result_GRAY.jpg'), gray)
   var result = detect_smile(gray, mat)
 
   if (result == 0) {
     res.render(rder)
-    cv.imwrite('public/result_NOSMILE.jpg', mat)
+    cv.imwrite(path.join(__dirname, 'public/result_NOSMILE.jpg'), mat)
     io.on('connection', function (socket) {
-      fs.readFile('public/result_NOSMILE.jpg', function (err, buff) {
+      fs.readFile(path.join(__dirname, 'public/result_NOSMILE.jpg'), function (err, buff) {
         socket.emit('imageNotSmile', {
           image: 'data:image/jpg;base64,' + buff.toString('base64'),
           message: 'Smiles Can Not Be Detected, Let\'s Try Again!'
@@ -171,9 +172,9 @@ function detect_smile_helper(req, res, rder) {
     })
   } else {
     isFace = true
-    cv.imwrite('public/result_SMILE.jpg', result)
+    cv.imwrite(path.join(__dirname, 'public/result_SMILE.jpg'), result)
     io.on('connection', function (socket) {
-      fs.readFile('public/result_SMILE.jpg', function (err, buff) {
+      fs.readFile(path.join(__dirname, 'public/result_SMILE.jpg'), function (err, buff) {
         socket.emit('imageSmile', {
           image: 'data:image/jpg;base64,' + buff.toString('base64'),
           message: 'Smiles Detected'
