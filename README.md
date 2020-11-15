@@ -1,6 +1,6 @@
 # Happy Chat
-[![Heroku](https://img.shields.io/badge/Heroku-deployed-blueviolet)](https://agile-tor-53744.herokuapp.com)
-<img alt="Website" src="https://img.shields.io/website/https/agile-tor-53744.herokuapp.com">
+[![Heroku](https://img.shields.io/badge/Heroku-deployed-blueviolet)](https://happychatwebapp.herokuapp.com)
+<img alt="Website" src="https://img.shields.io/website/https/happychatwebapp.herokuapp.com">
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/psu-oss-group/happy-chat/blob/readme/LICENSE)
 [![contributions welcome](https://img.shields.io/badge/Contributions-welcome-brightgreen.svg?style=flat)](https://github.com/psu-oss-group/happy-chat/issues)
 [![Gitter](https://badges.gitter.im/psu-oss-group/happy-chat.svg)](https://gitter.im/psu-oss-group/happy-chat?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
@@ -26,7 +26,7 @@ Happy Chat is a webchat (or Bulletin Board System) that allow authenticated user
 - Weiwei Chen
 
 ## Links
-- [Live Demo](https://agile-tor-53744.herokuapp.com/)
+- [Live Demo](https://happychatwebapp.herokuapp.com/)
 - [GitHub Page](https://psu-oss-group.github.io/happy-chat/)
 - [Repository](https://github.com/psu-oss-group)
 
@@ -38,12 +38,26 @@ Frontend: Handlebarsjs, Ajax, Bootstap, Momentjs, Font Awesome
 
 Deploy: Docker, Heroku
 
-## Pre-reqs, Setup, and Build
+## Docker Setup, and Build (with opencv4nodejs image globally installed)
+With a lightweight, stand-alone docker container, you don't have to worry about complex dependencies or any of the prerequisites.
+
+```shell
+$ docker-compose build
+```
+
+Run
+```shell
+$ docker-compose up
+```
+
+Go to: [localhost:3000/](http://localhost:3000/)
+
+## Local Setup, and Build
 
 Get prerequisites
 ```shell
 $ sudo apt update
-$ sudo apt install cmake fswebcam
+$ sudo apt install cmake
 ```
 
 Git clone, and install all modules/dependencies (Opencv4nodejs installation might take longe time)
@@ -51,30 +65,13 @@ Git clone, and install all modules/dependencies (Opencv4nodejs installation migh
 $ git clone https://github.com/psu-oss-group/happy-chat.git
 $ cd happy-chat
 $ npm install
+$ npm install --save opencv4nodejs
 
 ```
 
 Run the server.js
 ```shell
 $ node server.js
-```
-Go to: [localhost:3000/](http://localhost:3000/)
-
-## Docker (Optional)
-
-With a lightweight, stand-alone docker container, you don't have to worry about complex dependencies or any of the prerequisites.
-We made the container, as it allows us to easily deploy our app to anywhere.
-
-Pull the image and list the images info.
-```shell
-$ docker pull ronniesong0809/chatappfaceid
-$ docker images
-```
-run the docker image by using the image id. Make sure sharing webcam with container by
-```shell
-$ docker run -p 3000:3000 --device=/dev/video0:/dev/video0 [image_id]
-or
-$ docker run -p 3001:3000 --privileged -v /dev/video0:/dev/video0 [image_id]
 ```
 Go to: [localhost:3000/](http://localhost:3000/)
 
