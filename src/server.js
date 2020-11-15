@@ -5,10 +5,11 @@ var GoogleStrategy = require('passport-google-oauth').OAuth2Strategy
 var app = express()
 var server = require('http').createServer(app)
 var io = require('socket.io').listen(server)
-var cv = require('opencv4nodejs')
+var cv = require('/usr/lib/node_modules/opencv4nodejs')
 var cam = require('node-webcam')
 var fs = require('fs')
-
+var path = require('path')
+var serveStatic = require('serve-static')
 
 var session = require('express-session')
 var port = 3000
@@ -36,7 +37,9 @@ app.use(
 
 app.use(passport.initialize())
 app.use(passport.session())
-app.use(express.static('public'))
+// app.use(express.static('public'))
+app.use(serveStatic(path.join(__dirname, 'public')))
+app.set('views', path.join(__dirname, 'views/'))
 
 passport.serializeUser(function (user, done) {
   done(null, user)
@@ -51,7 +54,6 @@ passport.use(
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackURL: '/auth/google/callback',
-    enableProof: false
   }, function (accessToken, refreshToken, profile, done) {
     return done(null, profile)
   })
