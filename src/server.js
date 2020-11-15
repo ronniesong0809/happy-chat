@@ -95,9 +95,9 @@ app.get('/logout', function (req, res) {
   res.redirect('/')
 })
 
-app.get('/countTime', function (req, res) {
-  res.render('countTime')
-})
+// app.get('/countTime', function (req, res) {
+//   res.render('countTime')
+// })
 
 app.get('/test', function (req, res) {
   res.render('test')
